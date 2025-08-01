@@ -20,15 +20,31 @@ app.post('/webhook', async (req, res) => {
     // 🟢 กรณีผู้ใช้แอดบอทเป็นเพื่อน
     if (event.type === 'follow') {
       const replyToken = event.replyToken;
-
+    
       await axios.post(
         'https://api.line.me/v2/bot/message/reply',
         {
           replyToken: replyToken,
           messages: [
             {
-              type: 'text',
-              text: '👋 สวัสดีค่ะ ขอบคุณที่เพิ่มเพื่อน! พิมพ์ "เมนู" เพื่อเริ่มใช้งานได้นะคะ 😊'
+              type: 'template',
+              altText: 'กรุณาเลือกภาษาที่ต้องการใช้ / Please select your language',
+              template: {
+                type: 'confirm',
+                text: 'กรุณาเลือกภาษาที่ต้องการใช้ / Please select your language',
+                actions: [
+                  {
+                    type: 'message',
+                    label: 'ไทย 🇹🇭',
+                    text: 'เลือกภาษา: ไทย'
+                  },
+                  {
+                    type: 'message',
+                    label: 'English 🇺🇸',
+                    text: 'Language: English'
+                  }
+                ]
+              }
             }
           ]
         },
@@ -40,6 +56,7 @@ app.post('/webhook', async (req, res) => {
         }
       );
     }
+    
 
     // 🟠 ถ้าผู้ใช้ส่งข้อความ
     if (event.type === 'message' && event.message.type === 'text') {
