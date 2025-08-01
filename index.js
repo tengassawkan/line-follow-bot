@@ -2,6 +2,15 @@ console.log('Starting server...');
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
+const dialogflow = require('dialogflow');
+const uuid = require('uuid');
+const path = require('path');
+
+const projectId = 'YOUR_PROJECT_ID'; // จาก Google Cloud
+const sessionClient = new dialogflow.SessionsClient({
+  keyFilename: path.join(__dirname, 'YOUR_JSON_FILENAME.json') // เช่น 'dialogflow-key.json'
+});
+
 
 const app = express();
 app.use(bodyParser.json());
@@ -59,30 +68,41 @@ app.post('/webhook', async (req, res) => {
     
 
     // 🟠 ถ้าผู้ใช้ส่งข้อความ
-    if (event.type === 'message' && event.message.type === 'text') {
-      const replyToken = event.replyToken;
-      const userMessage = event.message.text;
+    const sessionId = uuid.v4();
+const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
 
-      await axios.post(
-        'https://api.line.me/v2/bot/message/reply',
-        {
-          replyToken: replyToken,
-          messages: [
-            {
-              type: 'text',
-              text: `คุณพิมพ์ว่า: ${userMessage}`
-            }
-          ]
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`
-          }
-        }
-      );
-    }
+const request = {
+  session: sessionPath,
+  queryInput: {
+    text: {
+      text: userMessage,
+      languageCode: 'th', // หรือ 'en'
+    },
+  },
+};
+
+const responses = await sessionClient.detectIntent(request);
+const result = responses[0].queryResult;
+
+await axios.post(
+  'https://api.line.me/v2/bot/message/reply',
+  {
+    replyToken,
+    messages: [
+      {
+        type: 'text',
+        text: result.fulfillmentText,
+      },
+    ],
+  },
+  {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+    },
   }
+);
+
 
   res.sendStatus(200);
 });
