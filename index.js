@@ -6,17 +6,15 @@ const dialogflow = require('dialogflow');
 const uuid = require('uuid');
 const path = require('path');
 
-const projectId = 'YOUR_PROJECT_ID'; // จาก Google Cloud
-const sessionClient = new dialogflow.SessionsClient({
-  keyFilename: path.join(__dirname, 'YOUR_JSON_FILENAME.json') // เช่น 'dialogflow-key.json'
-});
-
-
 const app = express();
 app.use(bodyParser.json());
 
-// 🔐 ใส่ Channel Access Token ที่คุณได้จาก LINE Developers Console
-const CHANNEL_ACCESS_TOKEN = 'N9MdAkeCqg6kMk2LgwkTl6dy9yhba10ec4l9w5APzRy3SpSfZlur4dfDtQ/CUVQa2p16LaE1kpyGOgOO9jzYy8q5ouh1o+J19/hIQTmPzyEaSMOI3Dh/SJjytIoFm0j5IOT3S/ommuDPGpuXcE4GNQdB04t89/1O/w1cDnyilFU=';
+// 🔐 ใส่ข้อมูลของคุณตรงนี้
+const CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN';
+const projectId = 'YOUR_PROJECT_ID';
+const sessionClient = new dialogflow.SessionsClient({
+  keyFilename: path.join(__dirname, 'YOUR_JSON_FILENAME.json')
+});
 
 app.get('/', (req, res) => {
   res.send('✅ Server is running!');
@@ -26,10 +24,10 @@ app.post('/webhook', async (req, res) => {
   const events = req.body.events;
 
   for (const event of events) {
-    // 🟢 กรณีผู้ใช้แอดบอทเป็นเพื่อน
+    // 🟢 ผู้ใช้แอดเพื่อน
     if (event.type === 'follow') {
       const replyToken = event.replyToken;
-    
+
       await axios.post(
         'https://api.line.me/v2/bot/message/reply',
         {
@@ -65,49 +63,57 @@ app.post('/webhook', async (req, res) => {
         }
       );
     }
-    
 
-    // 🟠 ถ้าผู้ใช้ส่งข้อความ
-    const sessionId = uuid.v4();
-const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
+    // 🟠 ผู้ใช้ส่งข้อความ
+    if (event.type === 'message' && event.message.type === 'text') {
+      const replyToken = event.replyToken;
+      const userMessage = event.message.text;
 
-const request = {
-  session: sessionPath,
-  queryInput: {
-    text: {
-      text: userMessage,
-      languageCode: 'th', // หรือ 'en'
-    },
-  },
-};
+      const sessionId = uuid.v4();
+      const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
 
-const responses = await sessionClient.detectIntent(request);
-const result = responses[0].queryResult;
+      const request = {
+        session: sessionPath,
+        queryInput: {
+          text: {
+            text: userMessage,
+            languageCode: 'th', // เปลี่ยนเป็น 'en' ได้หากเลือกภาษาอังกฤษ
+          }
+        }
+      };
 
-await axios.post(
-  'https://api.line.me/v2/bot/message/reply',
-  {
-    replyToken,
-    messages: [
-      {
-        type: 'text',
-        text: result.fulfillmentText,
-      },
-    ],
-  },
-  {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
-    },
+      try {
+        const responses = await sessionClient.detectIntent(request);
+        const result = responses[0].queryResult;
+
+        await axios.post(
+          'https://api.line.me/v2/bot/message/reply',
+          {
+            replyToken,
+            messages: [
+              {
+                type: 'text',
+                text: result.fulfillmentText || '🤖 ขอโทษค่ะ ฉันไม่เข้าใจข้อความนี้'
+              }
+            ]
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`
+            }
+          }
+        );
+      } catch (error) {
+        console.error('❌ Error from Dialogflow:', error);
+      }
+    }
   }
-);
-
 
   res.sendStatus(200);
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('✅ Server is running on port', PORT);
+  console.log(`✅ Server is running on port ${PORT}`);
 });
