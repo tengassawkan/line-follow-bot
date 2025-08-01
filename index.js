@@ -7,7 +7,11 @@ const app = express();
 app.use(bodyParser.json());
 
 // 🔐 ใส่ Channel Access Token ที่คุณได้จาก LINE Developers Console
-const CHANNEL_ACCESS_TOKEN = 'Yly74b2xZRFgMvltvu+mrwgao63YDhLppCHps4osAWErGzNMP/VlQpi6Q+SoeXCjn2p16LaE1kpyGOgOO9jzYy8q5ouh1o+J19/hIQTmPzyEER5ct50lFdgs7Z13jNcWqdoaLdU9Rz/sGpUr3dBuzoQdB04t89/1O/w1cDnyilFU=';
+const CHANNEL_ACCESS_TOKEN = 'N9MdAkeCqg6kMk2LgwkTl6dy9yhba10ec4l9w5APzRy3SpSfZlur4dfDtQ/CUVQa2p16LaE1kpyGOgOO9jzYy8q5ouh1o+J19/hIQTmPzyEaSMOI3Dh/SJjytIoFm0j5IOT3S/ommuDPGpuXcE4GNQdB04t89/1O/w1cDnyilFU=';
+
+app.get('/', (req, res) => {
+  res.send('✅ Server is running!');
+});
 
 app.post('/webhook', async (req, res) => {
   const events = req.body.events;
